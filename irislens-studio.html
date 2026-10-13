@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="description" content="IrisLens Studio - an interactive guide to template matching, Viola-Jones, DeepFace and FaceNet" />
+<title>IrisLens Studio | Face Recognition Explained</title>
+<style>
+  :root{
+    --paper:#f6f1e7; --card:#fffdf8; --ink:#1f2a37; --soft:#5b6675; --line:#e3dac8;
+    --terra:#d9593d; --teal:#0f766e; --mustard:#c98a0b; --indigo:#4f46e5;
+    --shadow:0 10px 30px rgba(31,42,55,.08);
+  }
+  *{box-sizing:border-box;scroll-behavior:smooth}
+  body{margin:0;background:var(--paper);color:var(--ink);font-family:"Segoe UI",system-ui,Arial,sans-serif;line-height:1.5}
+  button{font:inherit;cursor:pointer}
+  .wrap{width:min(1120px,calc(100% - 32px));margin:auto}
+  h1,h2,h3{font-family:Georgia,"Times New Roman",serif;font-weight:700;margin:0}
+
+  /* header */
+  header{position:sticky;top:0;z-index:20;background:rgba(246,241,231,.92);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+  .bar{height:68px;display:flex;align-items:center;justify-content:space-between;gap:16px}
+  .brand{display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--ink);font-family:Georgia,serif;font-size:21px;font-weight:700}
+  .brand i{width:30px;height:30px;border-radius:50%;background:radial-gradient(circle at 50% 50%,var(--ink) 0 22%,var(--teal) 23% 48%,var(--card) 49% 100%);border:2px solid var(--ink);display:inline-block}
+  nav{display:flex;gap:6px}
+  nav a{color:var(--soft);text-decoration:none;font-size:14px;padding:8px 14px;border-radius:999px;transition:.2s}
+  nav a:hover{background:var(--card);color:var(--ink)}
+  .viva-toggle{border:2px solid var(--ink);background:transparent;color:var(--ink);padding:8px 16px;border-radius:999px;font-weight:600;transition:.2s}
+  .viva-toggle.active{background:var(--ink);color:var(--paper)}
+
+  /* hero */
+  .hero{display:grid;grid-template-columns:1.1fr .9fr;gap:56px;align-items:center;padding:80px 0 40px}
+  .tag{display:inline-block;background:#fbe3dc;color:var(--terra);font-weight:700;font-size:12px;letter-spacing:1px;text-transform:uppercase;padding:6px 12px;border-radius:999px}
+  .hero h1{font-size:clamp(42px,6vw,76px);line-height:1.02;margin:20px 0}
+  .hero h1 em{color:var(--terra);font-style:italic}
+  .hero p{color:var(--soft);font-size:18px;max-width:520px}
+  .btns{display:flex;gap:12px;flex-wrap:wrap;margin-top:28px}
+  .btn{padding:14px 22px;border-radius:12px;border:2px solid var(--ink);font-weight:600;transition:.2s}
+  .btn.main{background:var(--ink);color:var(--paper);box-shadow:4px 4px 0 var(--terra)}
+  .btn.ghost{background:transparent;color:var(--ink)}
+  .btn:hover{transform:translate(-2px,-2px)}
+  .hero-card{background:var(--card);border:2px solid var(--ink);border-radius:24px;padding:20px;box-shadow:8px 8px 0 var(--teal);position:relative}
+  .hero-card .top{display:flex;justify-content:space-between;font-size:12px;color:var(--soft);font-weight:600}
+  .hero-card .top b{color:var(--teal)}
+  .scan{position:relative;height:260px;margin:12px 0}
+  .scan svg{width:100%;height:100%}
+  .scan .beam{position:absolute;left:8%;right:8%;height:3px;background:var(--terra);border-radius:3px;box-shadow:0 0 12px var(--terra);animation:beam 3s ease-in-out infinite}
+  @keyframes beam{0%,100%{top:12%}50%{top:88%}}
+  .flow{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;border-top:2px dashed var(--line);padding-top:14px;text-align:center;font-size:12px;color:var(--soft)}
+  .flow b{display:block;font-family:Georgia,serif;font-size:22px;color:var(--ink)}
+
+  /* sections */
+  section.block{padding:90px 0 10px}
+  .head{display:flex;justify-content:space-between;align-items:end;gap:30px;margin-bottom:34px}
+  .head h2{font-size:clamp(32px,4.4vw,52px);line-height:1.05;margin-top:12px}
+  .head h2 span{color:var(--terra);font-style:italic}
+  .head p{max-width:360px;color:var(--soft);margin:0}
+
+  .topics{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+  .topic{background:var(--card);border:2px solid var(--line);border-top:8px solid var(--c);border-radius:16px;padding:22px;text-align:left;color:var(--ink);min-height:270px;display:flex;flex-direction:column;justify-content:space-between;transition:.2s;box-shadow:var(--shadow)}
+  .topic:hover,.topic.active{transform:translateY(-6px);border-color:var(--c)}
+  .topic .n{font-size:12px;color:var(--soft);font-weight:700}
+  .topic .ic{font-size:30px;color:var(--c);margin:8px 0}
+  .topic h3{font-size:22px;margin-bottom:8px}
+  .topic p{margin:0;color:var(--soft);font-size:14px}
+  .topic .out{margin-top:16px;padding-top:12px;border-top:1px dashed var(--line);font-size:12px;font-weight:600;color:var(--c)}
+  .t1{--c:var(--teal)}.t2{--c:var(--mustard)}.t3{--c:var(--indigo)}.t4{--c:var(--terra)}
+
+  /* lab */
+  .lab{background:var(--card);border:2px solid var(--ink);border-radius:24px;box-shadow:8px 8px 0 var(--mustard);overflow:hidden}
+  .tabs{display:flex;gap:8px;padding:14px;background:#f1e9d8;border-bottom:2px solid var(--ink);flex-wrap:wrap}
+  .tab{border:2px solid transparent;background:transparent;color:var(--soft);padding:10px 16px;border-radius:999px;font-weight:600}
+  .tab:hover{color:var(--ink)}
+  .tab.active{background:var(--ink);color:var(--paper)}
+  .lab-body{padding:28px}
+  .lab-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;gap:10px;flex-wrap:wrap}
+  .lab-head h3{font-size:28px}
+  .live{font-size:12px;font-weight:700;color:var(--teal);background:#d6efeb;padding:6px 12px;border-radius:999px}
+  .stage{position:relative;height:270px;border:2px solid var(--ink);border-radius:16px;overflow:hidden;
+    background:linear-gradient(var(--line) 1px,transparent 1px),linear-gradient(90deg,var(--line) 1px,transparent 1px),#fffaf0;background-size:24px 24px}
+  .tbox{position:absolute;width:110px;height:80px;border:3px solid var(--teal);background:rgba(15,118,110,.12);border-radius:8px;display:grid;place-items:center;font-size:26px;color:var(--teal);transition:left .15s,top .15s}
+  .tbox span{position:absolute;top:-24px;left:-3px;background:var(--teal);color:#fff;font-size:11px;padding:3px 8px;border-radius:6px 6px 6px 0}
+  .tgt{position:absolute;left:60%;top:50%;width:110px;height:80px;transform:translate(-50%,-50%);border:3px dashed var(--ink);border-radius:8px;display:grid;place-items:center;font-size:12px;color:var(--soft)}
+  .face-o{position:absolute;left:50%;top:50%;width:130px;height:170px;transform:translate(-50%,-50%);border:3px solid var(--ink);border-radius:50%}
+  .face-o::before,.face-o::after{content:"";position:absolute;top:60px;width:26px;height:12px;border:2px solid var(--ink);border-radius:50%}
+  .face-o::before{left:24px}.face-o::after{right:24px}
+  .haar{position:absolute;left:50%;top:38%;width:96px;height:30px;transform:translate(-50%,-50%);border:3px solid var(--mustard);background:linear-gradient(180deg,rgba(31,42,55,.55) 50%,rgba(255,255,255,.7) 50%);transition:.35s}
+  .lm-face{position:absolute;left:32%;top:50%;width:130px;height:170px;transform:translate(-50%,-50%);border:3px solid var(--indigo);border-radius:50%}
+  .dots{position:absolute;inset:0}
+  .dot{position:absolute;width:9px;height:9px;border-radius:50%;background:var(--indigo);transform:translate(-50%,-50%);transition:.4s}
+  .sim{position:absolute;right:12%;top:38%;font-family:Georgia,serif;font-size:46px;font-weight:700;color:var(--indigo);text-align:center}
+  .sim small{display:block;font-family:"Segoe UI",sans-serif;font-size:12px;font-weight:400;color:var(--soft)}
+  .node{position:absolute;width:48px;height:48px;border-radius:50%;display:grid;place-items:center;font-weight:700;color:#fff;transform:translate(-50%,-50%);transition:.3s}
+  .na{background:var(--teal);left:45%;top:55%}.np{background:var(--indigo)}.nn{background:var(--terra)}
+  svg.links{position:absolute;inset:0;width:100%;height:100%}
+  .controls{display:flex;gap:26px;align-items:center;flex-wrap:wrap;margin-top:20px}
+  .controls label{font-size:13px;font-weight:600}
+  input[type=range]{width:240px;accent-color:var(--terra);display:block;margin-top:6px}
+  .metric{padding-left:18px;border-left:3px solid var(--line);font-size:12px;color:var(--soft)}
+  .metric strong{display:block;font-family:Georgia,serif;font-size:22px;color:var(--ink)}
+  .chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:18px}
+  .chip{background:#f1e9d8;border:2px solid var(--line);color:var(--soft);padding:9px 14px;border-radius:10px;font-weight:600}
+  .chip.active{border-color:var(--ink);color:var(--ink);background:#ffe9a8}
+  .note{margin:14px 0 0;font-weight:600}
+  .viva-box{display:none;margin-top:22px;border-left:6px solid var(--terra);background:#fbe3dc;padding:16px 18px;border-radius:0 12px 12px 0;font-size:14px}
+  .viva-box.show{display:block}
+
+  /* table */
+  .tbl{overflow-x:auto;background:var(--card);border:2px solid var(--ink);border-radius:18px;box-shadow:6px 6px 0 var(--indigo)}
+  table{width:100%;min-width:760px;border-collapse:collapse}
+  th,td{padding:16px 18px;text-align:left;font-size:14px;border-bottom:1px solid var(--line)}
+  th{background:var(--ink);color:var(--paper);font-family:Georgia,serif;font-size:15px}
+  td{color:var(--soft)}
+  td:first-child{color:var(--ink);font-weight:700;background:#f8f3e7}
+  tr:last-child td{border-bottom:0}
+
+  /* viva q&a */
+  .qa{display:grid;gap:12px}
+  .q{background:var(--card);border:2px solid var(--line);border-radius:14px;padding:18px 22px;cursor:pointer;transition:.2s}
+  .q:hover,.q.open{border-color:var(--ink)}
+  .q strong{display:flex;justify-content:space-between;gap:12px;font-size:16px}
+  .q strong span{color:var(--terra);font-size:22px;line-height:1}
+  .a{display:none;color:var(--soft);padding-top:12px;max-width:780px}
+  .q.open .a{display:block}
+
+  footer{margin-top:100px;border-top:2px solid var(--ink);padding:26px 0;color:var(--soft);font-size:13px;display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap}
+
+  @media(max-width:860px){
+    nav{display:none}
+    .hero{grid-template-columns:1fr;padding-top:50px}
+    .topics{grid-template-columns:repeat(2,1fr)}
+    .head{display:block}.head p{margin-top:14px}
+  }
+  @media(max-width:540px){
+    .topics{grid-template-columns:1fr}
+    .lab-body{padding:16px}
+    .sim{right:6%;font-size:34px}
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap bar">
+    <a class="brand" href="#home"><i></i>IrisLens Studio</a>
+    <nav>
+      <a href="#topics">Algorithms</a>
+      <a href="#lab">Interactive Lab</a>
+      <a href="#comparison">Comparison</a>
+      <a href="#viva">Viva Prep</a>
+    </nav>
+    <button class="viva-toggle" id="vivaToggle">✦ Viva Mode</button>
+  </div>
+</header>
+
+<main>
+  <section class="wrap hero" id="home">
+    <div>
+      <span class="tag">IVA · Image &amp; Video Analysis</span>
+      <h1>Learn how machines <em>recognise</em> a face.</h1>
+      <p>A hands-on studio that walks through four generations of computer vision: Template Matching, Viola-Jones, DeepFace and FaceNet.</p>
+      <div class="btns">
+        <button class="btn main" onclick="document.querySelector('#lab').scrollIntoView()">▶ Open the Lab</button>
+        <button class="btn ghost" onclick="document.querySelector('#viva').scrollIntoView()">Viva Questions →</button>
+      </div>
+    </div>
+    <div class="hero-card">
+      <div class="top"><span>IRISLENS · SCAN</span><b>● LIVE</b></div>
+      <div class="scan">
+        <svg viewBox="0 0 300 260" fill="none" stroke="#1f2a37" stroke-width="3" stroke-linecap="round">
+          <ellipse cx="150" cy="130" rx="85" ry="110" fill="#fff7e6"/>
+          <ellipse cx="118" cy="105" rx="16" ry="8"/><ellipse cx="182" cy="105" rx="16" ry="8"/>
+          <circle cx="118" cy="105" r="3" fill="#0f766e"/><circle cx="182" cy="105" r="3" fill="#0f766e"/>
+          <path d="M150 115 L142 150 L158 150"/><path d="M120 185 Q150 205 180 185"/>
+          <rect x="55" y="12" width="190" height="236" rx="10" stroke="#d9593d" stroke-dasharray="10 8"/>
+        </svg>
+        <div class="beam"></div>
+      </div>
+      <div class="flow"><div><b>01</b>Pixels</div><div><b>02</b>Features</div><div><b>03</b>Embedding</div><div><b>04</b>Decision</div></div>
+    </div>
+  </section>
+
+  <section class="wrap block" id="topics">
+    <div class="head">
+      <div><span class="tag">01 · Algorithm Atlas</span><h2>Four ideas, <span>one story.</span></h2></div>
+      <p>Each algorithm solves a different vision problem. Click a card to open it in the lab.</p>
+    </div>
+    <div class="topics">
+      <button class="topic t1 active" data-topic="template"><div><span class="n">01</span><div class="ic">▦</div><h3>Template Matching</h3><p>Slide a known pattern across a bigger image and score every position.</p></div><div class="out">Output: location + confidence</div></button>
+      <button class="topic t2" data-topic="viola"><div><span class="n">02</span><div class="ic">◉</div><h3>Viola-Jones</h3><p>Fast face detection with Haar features, integral images, AdaBoost and cascades.</p></div><div class="out">Output: detected face boxes</div></button>
+      <button class="topic t3" data-topic="deepface"><div><span class="n">03</span><div class="ic">◎</div><h3>DeepFace</h3><p>Detect, align, encode and verify two faces using a deep neural network.</p></div><div class="out">Output: similarity score</div></button>
+      <button class="topic t4" data-topic="facenet"><div><span class="n">04</span><div class="ic">⬡</div><h3>FaceNet</h3><p>Map faces to embeddings where distance reflects identity similarity.</p></div><div class="out">Output: identity embedding</div></button>
+    </div>
+  </section>
+
+  <section class="wrap block" id="lab">
+    <div class="head">
+      <div><span class="tag">02 · Interactive Lab</span><h2>Change a value, <span>see the idea.</span></h2></div>
+      <p>Simplified simulations that build intuition for each method.</p>
+    </div>
+    <div class="lab">
+      <div class="tabs">
+        <button class="tab active" data-lab="template">▦ Template Matching</button>
+        <button class="tab" data-lab="viola">◉ Viola-Jones</button>
+        <button class="tab" data-lab="deepface">◎ DeepFace</button>
+        <button class="tab" data-lab="facenet">⬡ FaceNet</button>
+      </div>
+      <div class="lab-body">
+        <div class="lab-head"><h3 id="labTitle">Template Matching</h3><span class="live">● SIMULATION ACTIVE</span></div>
+        <div id="labArea"></div>
+        <div class="viva-box" id="vivaBox"><strong>Presentation tip:</strong> use this demo to explain the algorithm in your viva. Values shown are simulated for teaching, not real recognition results.</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="wrap block" id="comparison">
+    <div class="head">
+      <div><span class="tag">03 · Decision Matrix</span><h2>Pick the <span>right lens.</span></h2></div>
+      <p>No single algorithm wins everywhere. The best choice depends on input, output, speed and accuracy needs.</p>
+    </div>
+    <div class="tbl">
+      <table>
+        <thead><tr><th>Attribute</th><th>Template Matching</th><th>Viola-Jones</th><th>DeepFace</th><th>FaceNet</th></tr></thead>
+        <tbody>
+          <tr><td>Primary Job</td><td>Find a known pattern</td><td>Detect faces</td><td>Verify identity</td><td>Search identities</td></tr>
+          <tr><td>Input</td><td>Image + template</td><td>Image or video</td><td>Two face images</td><td>Face image</td></tr>
+          <tr><td>Output</td><td>Coordinates + score</td><td>Bounding boxes</td><td>Similarity percentage</td><td>Embedding vector</td></tr>
+          <tr><td>Machine Learning</td><td>No</td><td>AdaBoost</td><td>Deep CNN</td><td>Triplet loss</td></tr>
+          <tr><td>Best Use</td><td>Object matching</td><td>Fast face detection</td><td>Pair verification</td><td>Clustering and retrieval</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="wrap block" id="viva">
+    <div class="head">
+      <div><span class="tag">04 · Viva Preparation</span><h2>Walk in <span>prepared.</span></h2></div>
+      <p>Tap a question to reveal a short answer you can explain aloud.</p>
+    </div>
+    <div class="qa">
+      <div class="q"><strong>Why is Template Matching not scale invariant?<span>＋</span></strong><div class="a">The template is compared at one fixed size. If the object appears larger or smaller, the pixel pattern changes and the correlation score drops.</div></div>
+      <div class="q"><strong>Why are integral images useful in Viola-Jones?<span>＋</span></strong><div class="a">An integral image lets the sum of any rectangle be computed with just four array lookups, which makes Haar feature evaluation extremely fast.</div></div>
+      <div class="q"><strong>What does DeepFace do?<span>＋</span></strong><div class="a">It detects and aligns the face, extracts deep features with a neural network, and compares the representations to verify whether two faces belong to the same person.</div></div>
+      <div class="q"><strong>What is triplet loss in FaceNet?<span>＋</span></strong><div class="a">Triplet loss pulls the anchor and positive images closer in embedding space while pushing the negative image farther away, by at least a margin.</div></div>
+    </div>
+  </section>
+</main>
+
+<footer class="wrap">
+  <span>IrisLens Studio · IVA College Assignment</span>
+  <span>Educational simulation only · Handle face data responsibly</span>
+  <span>2025–2026</span>
+</footer>
+
+<script>
+  const labTitle = document.getElementById("labTitle");
+  const labArea = document.getElementById("labArea");
+  const vivaToggle = document.getElementById("vivaToggle");
+  const vivaBox = document.getElementById("vivaBox");
+  let vivaMode = false;
+
+  const labNames = {
+    template: "Template Matching",
+    viola: "Viola-Jones Algorithm",
+    deepface: "DeepFace Pipeline",
+    facenet: "FaceNet Embeddings"
+  };
+
+  function renderLab(type) {
+    labTitle.textContent = labNames[type];
+    document.querySelectorAll(".tab").forEach(t => t.classList.toggle("active", t.dataset.lab === type));
+    document.querySelectorAll(".topic").forEach(c => c.classList.toggle("active", c.dataset.topic === type));
+
+    if (type === "template") {
+      labArea.innerHTML = `
+        <div class="stage">
+          <div class="tgt">hidden target</div>
+          <div class="tbox" id="tbox"><span>TEMPLATE</span>◎</div>
+        </div>
+        <div class="controls">
+          <label>Window position<input id="trange" type="range" min="5" max="90" value="20"></label>
+          <div class="metric">Match confidence<strong id="tconf">--</strong></div>
+          <div class="metric">Method<strong>CCOEFF_NORMED</strong></div>
+        </div>`;
+      const r = document.getElementById("trange"), b = document.getElementById("tbox"), c = document.getElementById("tconf");
+      const update = () => {
+        const v = Number(r.value);
+        b.style.left = `calc(${v}% - 55px)`;
+        b.style.top = "calc(50% - 40px)";
+        const d = Math.abs(v - 60);
+        c.textContent = Math.max(12, 98 - d * 1.6).toFixed(1) + "%";
+      };
+      r.addEventListener("input", update);
+      update();
+    }
+
+    if (type === "viola") {
+      labArea.innerHTML = `
+        <div class="stage"><div class="face-o"></div><div class="haar" id="haar"></div></div>
+        <div class="chips">
+          <button class="chip active" data-stage="0">01 Haar Features</button>
+          <button class="chip" data-stage="1">02 Integral Image</button>
+          <button class="chip" data-stage="2">03 AdaBoost</button>
+          <button class="chip" data-stage="3">04 Cascade Result</button>
+        </div>
+        <p class="note" id="stageText" style="color:#c98a0b">Haar features compare light and dark rectangular regions.</p>`;
+      const msgs = [
+        "Haar features compare light and dark rectangular regions.",
+        "Integral images calculate rectangle sums using four lookups.",
+        "AdaBoost combines many weak classifiers into a strong classifier.",
+        "Cascade stages reject most non-face windows very quickly."
+      ];
+      const haar = document.getElementById("haar"), txt = document.getElementById("stageText");
+      document.querySelectorAll("[data-stage]").forEach(btn => btn.addEventListener("click", () => {
+        document.querySelectorAll("[data-stage]").forEach(x => x.classList.remove("active"));
+        btn.classList.add("active");
+        const s = Number(btn.dataset.stage);
+        txt.textContent = msgs[s];
+        haar.style.top = (38 + s * 8) + "%";
+        haar.style.height = (30 + s * 14) + "px";
+        haar.style.width = (96 + s * 20) + "px";
+      }));
+    }
+
+    if (type === "deepface") {
+      const pts = [[30,38],[36,38],[44,38],[24,50],[34,50],[40,50],[28,66],[34,70],[40,66]];
+      labArea.innerHTML = `
+        <div class="stage">
+          <div class="lm-face"></div>
+          <div class="dots" id="dots"></div>
+          <div class="sim" id="sim">--<small>identity similarity</small></div>
+        </div>
+        <div class="chips">
+          <button class="chip active" data-deep="0">1 Detect</button>
+          <button class="chip" data-deep="1">2 Align</button>
+          <button class="chip" data-deep="2">3 Encode</button>
+          <button class="chip" data-deep="3">4 Verify</button>
+        </div>
+        <p class="note" id="deepText" style="color:#4f46e5">Detect the face before extracting identity features.</p>`;
+      const msgs = [
+        "Detect the face before extracting identity features.",
+        "Alignment normalizes face pose using facial landmarks.",
+        "A CNN converts pixels into a high-dimensional representation.",
+        "Cosine similarity compares the two face representations."
+      ];
+      const dots = document.getElementById("dots"), sim = document.getElementById("sim"), txt = document.getElementById("deepText");
+      const simVals = ["--", "--", "--", "96.2%"];
+      const draw = s => {
+        dots.innerHTML = "";
+        if (s === 0) return;
+        pts.forEach(([x, y], i) => {
+          const d = document.createElement("div");
+          d.className = "dot";
+          const jitter = s === 1 ? 0 : (i % 2 ? 6 : -6);
+          d.style.left = (x + (s >= 2 ? 0 : jitter / 4)) + "%";
+          d.style.top = y + "%";
+          if (s >= 2) d.style.background = i % 2 ? "#d9593d" : "#0f766e";
+          dots.appendChild(d);
+        });
+      };
+      document.querySelectorAll("[data-deep]").forEach(btn => btn.addEventListener("click", () => {
+        document.querySelectorAll("[data-deep]").forEach(x => x.classList.remove("active"));
+        btn.classList.add("active");
+        const s = Number(btn.dataset.deep);
+        txt.textContent = msgs[s];
+        sim.innerHTML = `${simVals[s]}<small>identity similarity</small>`;
+        draw(s);
+      }));
+    }
+
+    if (type === "facenet") {
+      labArea.innerHTML = `
+        <div class="stage" id="fstage">
+          <svg class="links" id="links"></svg>
+          <div class="node na" id="na">A</div>
+          <div class="node np" id="np">P</div>
+          <div class="node nn" id="nn">N</div>
+        </div>
+        <div class="controls">
+          <label>Triplet margin α<input id="mrange" type="range" min="0" max="80" value="20"></label>
+          <div class="metric">Positive distance<strong id="pd">0.22</strong></div>
+          <div class="metric">Negative distance<strong id="nd">0.76</strong></div>
+          <div class="metric">Triplet loss<strong id="tl">0.00</strong></div>
+        </div>`;
+      const r = document.getElementById("mrange");
+      const na = document.getElementById("na"), np = document.getElementById("np"), nn = document.getElementById("nn");
+      const links = document.getElementById("links");
+      const update = () => {
+        const m = Number(r.value) / 100;
+        const pos = 0.18 + m / 5;
+        const neg = 0.78 - m / 8;
+        const loss = Math.max(0, pos - neg + m);
+        document.getElementById("pd").textContent = pos.toFixed(2);
+        document.getElementById("nd").textContent = neg.toFixed(2);
+        document.getElementById("tl").textContent = loss.toFixed(2);
+        const ax = 45, ay = 55;
+        const px = ax - pos * 60, py = ay - pos * 55;
+        const nx = ax + neg * 40, ny = ay - neg * 35;
+        np.style.left = px + "%"; np.style.top = py + "%";
+        nn.style.left = nx + "%"; nn.style.top = ny + "%";
+        links.setAttribute("viewBox", "0 0 100 100");
+        links.setAttribute("preserveAspectRatio", "none");
+        links.innerHTML =
+          `<line x1="${ax}" y1="${ay}" x2="${px}" y2="${py}" stroke="#4f46e5" stroke-width="0.6" vector-effect="non-scaling-stroke"/>` +
+          `<line x1="${ax}" y1="${ay}" x2="${nx}" y2="${ny}" stroke="#d9593d" stroke-width="0.6" stroke-dasharray="3 3" vector-effect="non-scaling-stroke"/>`;
+      };
+      r.addEventListener("input", update);
+      update();
+    }
+
+    vivaBox.classList.toggle("show", vivaMode);
+  }
+
+  document.querySelectorAll(".tab").forEach(t => t.addEventListener("click", () => renderLab(t.dataset.lab)));
+  document.querySelectorAll(".topic").forEach(c => c.addEventListener("click", () => {
+    renderLab(c.dataset.topic);
+    document.querySelector("#lab").scrollIntoView();
+  }));
+
+  vivaToggle.addEventListener("click", () => {
+    vivaMode = !vivaMode;
+    vivaToggle.classList.toggle("active", vivaMode);
+    vivaBox.classList.toggle("show", vivaMode);
+    vivaToggle.textContent = vivaMode ? "✦ Viva Mode ON" : "✦ Viva Mode";
+  });
+
+  document.querySelectorAll(".q").forEach(q => q.addEventListener("click", () => {
+    q.classList.toggle("open");
+    q.querySelector("strong span").textContent = q.classList.contains("open") ? "−" : "＋";
+  }));
+
+  renderLab("template");
+</script>
+</body>
+</html>
